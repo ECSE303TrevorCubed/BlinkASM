@@ -50,7 +50,8 @@
         packages =
           let
             blink_apps = {
-              blink_asm = crossPkgs.callPackage ./nix/asm.nix { };
+              blink_asm = crossPkgs.callPackage ./nix/blink.nix { };
+              pwm_asm = crossPkgs.callPackage ./nix/pwm.nix { };
             };
             blink_report = pkgs.callPackage ./nix/report.nix { };
             ci = pkgs.callPackage ./nix/ci.nix {
@@ -60,7 +61,7 @@
           in
           {
             default = blink_apps.blink_asm;
-            inherit (blink_apps) blink_asm;
+            inherit (blink_apps) blink_asm blink_pwm;
             inherit blink_report ci;
           };
         checks = {
