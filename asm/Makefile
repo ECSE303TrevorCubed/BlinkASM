@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS ?= -Wall
+CFLAGS ?= -Wall -g
 LDFLAGS ?= -nostdlib -static
 
 TARGETS = blink pwm
@@ -23,6 +23,6 @@ install: $(TARGETS)
 	install -Dm755 pwm $(DESTDIR)$(out)/bin/pwm
 
 clean:
-	rm -f $(TARGET) blink.o pwm.o
+	rm -f $(TARGETS) blink.o pwm.o
 
 .PHONY: all install clean

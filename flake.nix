@@ -61,7 +61,8 @@
           in
           {
             default = blink_apps.blink_asm;
-            inherit (blink_apps) blink_asm blink_pwm;
+            inherit (blink_apps) blink_asm pwm_asm;
+            blink_pwm = blink_apps.pwm_asm;
             inherit blink_report ci;
           };
         checks = {
