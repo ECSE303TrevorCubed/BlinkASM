@@ -9,6 +9,7 @@ stdenv.mkDerivation {
   version = "0.0.1";
   src = ../asm;
   buildInputs = [ wiringpi ];
+  dontStrip = true;
   meta = {
     mainProgram = "pwm";
     description = "PWM for an an LED on GPIO18, written in pure ARM assembly";
