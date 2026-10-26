@@ -1,16 +1,15 @@
 CC ?= gcc
 CFLAGS ?= -Wall -g
-LDFLAGS ?= -nostdlib -static
 
 TARGETS = blink pwm
 
 all: $(TARGETS)
 
 blink: blink.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -nostdlib -static -o $@ $^
 
 pwm: pwm.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ -lwiringPi
 
 blink.o: blink.s
 	$(CC) $(CFLAGS) -c -o $@ $<
