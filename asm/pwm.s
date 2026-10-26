@@ -1,10 +1,7 @@
 // pwm.s -- Hardware PWM LED dimming using WiringPi
-// Target: Raspberry Pi (ARMv7-A 32-bit EABI)
 //
-// Notes:
-// 1. WiringPi Pin 1 corresponds to BCM GPIO 18 (Physical Pin 12 on 40-pin header).
-// 2. Compile with: gcc -Wall -g -o pwm pwm.s -lwiringPi
-// 3. Must be run with root privileges: sudo ./pwm
+// - WiringPi Pin 1 corresponds to BCM GPIO 18
+// - Must be run with root privileges: sudo ./pwm
 
         .syntax unified
         .arm
@@ -14,13 +11,13 @@
 // ---------------------------------------
         .data
         .balign 4
-Intro:      .asciz  "Raspberry Pi wiringPi PWM test starting...\n"
-ErrMsg:     .asciz  "wiringPiSetup failed! Aborting...\n"
+Intro:      .asciz  "Raspberry Pi wiringPi pwm test\n"
+ErrMsg:     .asciz  "Setup didn't work... Aborting...\n"
 DimMsg:     .asciz  "Dimming LED...\n"
-DoneMsg:    .asciz  "PWM demonstration complete.\n"
+DoneMsg:    .asciz  "PWM demo complete!\n"
 
-LedPin:     .int    1           // WiringPi Pin 1 = BCM GPIO 18 (Physical Pin 12)
-delayMs:    .int    5           // Delay in ms per step (5 ms * 1024 = ~5.1 s)
+LedPin:     .int    1           // WiringPi Pin 1 = BCM GPIO 18
+delayMs:    .int    10
 PWM_OUTPUT  =       2           // WiringPi constant for PWM mode
 
 // ---------------------------------------
@@ -28,16 +25,16 @@ PWM_OUTPUT  =       2           // WiringPi constant for PWM mode
 // ---------------------------------------
         .text
         .global main
-        .extern printf
-        .extern wiringPiSetup
-        .extern delay
-        .extern pinMode
-        .extern pwmWrite
+        .extern printf          // From libc.stdio
+        .extern wiringPiSetup   // From wiringPi
+        .extern delay           // From wiringPi
+        .extern pinMode         // From wiringPi
+        .extern pwmWrite        // From wiringPi
 
 main:
         push    {r4, r5, lr}    // Save callee-saved registers & return address
 
-        // printf("Raspberry Pi wiringPi PWM test starting...\n");
+        // printf(Intro)
         ldr     r0, =Intro
         bl      printf
 
@@ -53,13 +50,11 @@ main:
 init:
         // pinMode(LedPin, PWM_OUTPUT);
         ldr     r0, =LedPin
-        ldr     r0, [r0]        // r0 = 1 (WiringPi Pin 1 / BCM 18)
-        mov     r1, #PWM_OUTPUT // r1 = 2 (PWM_OUTPUT)
+        ldr     r0, [r0]        // r0 = 1
+        mov     r1, #PWM_OUTPUT // r1 = 2
         bl      pinMode
 
-        // ==========================================================
-        // Phase 1: Ramp UP (0 -> 1024) - Brighten LED
-        // ==========================================================
+        // Brighten LED (0 -> 1024)
         mov     r4, #0          // r4 = duty cycle counter (i = 0)
         mov     r5, #1024       // r5 = upper limit
 ramp_up:
@@ -80,9 +75,7 @@ ramp_up:
         add     r4, r4, #1
         b       ramp_up
 
-        // ==========================================================
-        // Phase 2: Ramp DOWN (1024 -> 0) - Dim LED
-        // ==========================================================
+        // Dim LED (1024 -> 0)
 start_dim:
         ldr     r0, =DimMsg
         bl      printf
