@@ -51,7 +51,7 @@
 	// PWM parameters
 	.equ	PWM_PERIOD,	1024		// Range (1024 counts)
 	.equ	STEP_SIZE,	16		// Increment per dimming step (64 steps)
-	.equ	FADE_CYCLES,	5		// Number of fade down/up cycles
+	.equ	FADE_CYCLES,	10		// 10 fade cycles (matches Part 1's 10 toggles)
 
 	.global	_start
 _start:
@@ -69,7 +69,6 @@ _start:
 	mov	r1, #PAGE_LEN
 	mov	r2, #PROT_RW
 	mov	r3, #MAP_SHARED
-	// r4 holds fd
 	ldr	r5, =PHYS_CM_PAGE
 	mov	r7, #SYS_mmap2
 	svc	#0
@@ -83,7 +82,6 @@ _start:
 	mov	r1, #PAGE_LEN
 	mov	r2, #PROT_RW
 	mov	r3, #MAP_SHARED
-	// r4 holds fd
 	ldr	r5, =PHYS_GPIO_PAGE
 	mov	r7, #SYS_mmap2
 	svc	#0
@@ -97,7 +95,6 @@ _start:
 	mov	r1, #PAGE_LEN
 	mov	r2, #PROT_RW
 	mov	r3, #MAP_SHARED
-	// r4 holds fd
 	ldr	r5, =PHYS_PWM_PAGE
 	mov	r7, #SYS_mmap2
 	svc	#0
@@ -111,13 +108,19 @@ _start:
 	str	r1, [r10, #PWM_CTL]
 
 	// --- Step B: Stop PWM Clock and wait for BUSY to drop ---
-	// Bit 5 is KILL (0x20). Password 0x5A is required in bits 31:24.
-	ldr	r1, =(CM_PASSWD | 0x20)		// KILL = 1 (Bit 5), ENAB = 0
+	// Write PASSWD + SRC=1 (ENAB=0) to stop the clock smoothly
+	ldr	r1, =(CM_PASSWD | 0x01)
 	str	r1, [r8, #CM_PWMCTL]
+
+	// Wait with timeout for BUSY (bit 7) to clear
+	mov	r2, #0x20000
 wait_busy_stop:
 	ldr	r1, [r8, #CM_PWMCTL]
 	tst	r1, #(1 << 7)			// Check bit 7 (BUSY)
+	beq	clock_stopped
+	subs	r2, r2, #1
 	bne	wait_busy_stop
+clock_stopped:
 
 	// --- Step C: Configure Clock Divisor (Div = 32) ---
 	// 19.2 MHz / 32 = 600 kHz. With period 1024: PWM freq ~ 586 Hz.
@@ -128,10 +131,12 @@ wait_busy_stop:
 	// SRC=1 (oscillator), ENAB=1 (Bit 4)
 	ldr	r1, =(CM_PASSWD | 0x11)
 	str	r1, [r8, #CM_PWMCTL]
-wait_busy_start:
-	ldr	r1, [r8, #CM_PWMCTL]
-	tst	r1, #(1 << 7)			// Wait until clock generator starts
-	beq	wait_busy_start
+
+	// Short delay to allow clock generator to stabilize
+	mov	r2, #0x2000
+wait_clk_delay:
+	subs	r2, r2, #1
+	bne	wait_clk_delay
 
 	// --- Step E: Configure GPIO 18 as ALT5 (PWM0) ---
 	// In GPFSEL1, GPIO 18 is bits 26:24. ALT5 is 0b010.
