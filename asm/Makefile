@@ -1,21 +1,28 @@
 CC ?= gcc
-CFLAGS ?= -Wall
-LDFLAGS ?= -nostdlib -static
+CFLAGS ?= -Wall -g
 
-TARGET = blink
+TARGETS ?= blink pwm
 
-all: $(TARGET)
+all: $(TARGETS)
 
-$(TARGET): blink.o
-	$(CC) $(LDFLAGS) -o $@ $^
+blink: blink.o
+	$(CC) -nostdlib -static -o $@ $^
+
+pwm: pwm.o
+	$(CC) -o $@ $^ -lwiringPi
 
 blink.o: blink.s
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-install: $(TARGET)
-	install -Dm755 $(TARGET) $(DESTDIR)$(out)/bin/$(TARGET)
+pwm.o: pwm.s
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+install: $(TARGETS)
+	for t in $(TARGETS); do \
+		install -Dm755 $$t $(DESTDIR)$(out)/bin/$$t; \
+	done
 
 clean:
-	rm -f $(TARGET) blink.o
+	rm -f blink pwm blink.o pwm.o
 
 .PHONY: all install clean
