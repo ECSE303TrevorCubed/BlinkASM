@@ -18,8 +18,9 @@ pwm.o: pwm.s
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 install: $(TARGETS)
-	install -Dm755 blink $(DESTDIR)$(out)/bin/blink
-	install -Dm755 pwm $(DESTDIR)$(out)/bin/pwm
+	for t in $(TARGETS); do \
+		install -Dm755 $$t $(DESTDIR)$(out)/bin/$$t; \
+	done
 
 clean:
 	rm -f blink pwm blink.o pwm.o
