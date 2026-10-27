@@ -1,7 +1,7 @@
 CC ?= gcc
 CFLAGS ?= -Wall -g
 
-TARGETS = blink pwm
+TARGETS ?= blink pwm
 
 all: $(TARGETS)
 
@@ -22,6 +22,6 @@ install: $(TARGETS)
 	install -Dm755 pwm $(DESTDIR)$(out)/bin/pwm
 
 clean:
-	rm -f $(TARGETS) blink.o pwm.o
+	rm -f blink pwm blink.o pwm.o
 
 .PHONY: all install clean
