@@ -103,7 +103,7 @@
         packages =
           let
             blink_apps = {
-              blink_asm = crossPkgs.callPackage ./nix/blink.nix { };
+              blink_asm = crossPkgs.callPackage ./nix/blink.nix { wiringPi = wiringpi'; };
               pwm_asm = crossPkgs.callPackage ./nix/pwm.nix { wiringPi = wiringpi'; };
             };
             blink_report = pkgs.callPackage ./nix/report.nix { };
