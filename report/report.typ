@@ -56,13 +56,13 @@ This part relies on libc and WiringPi to dim an LED using the Pi's PWM controlle
 - The brightness of the LED is controller by switching the PWM rapidly between HIGH and LOW voltage. The apparent brightness we see if determined by the duty cycle
 - We initially tried to implement this using raw asm with no `wiringPi` calls, but quickly ran into complexity with initialization and implementation details.
 - We instead opted to use `wiringPi` to call their PWM functions to interface with the Pi's hardware PWM controller:
-    - We followed the AAPCS calling convention which specifies arguments be passed in registers `r0` through `r3` and return values in register `r0`
+  - We followed the AAPCS calling convention which specifies arguments be passed in registers `r0` through `r3` and return values in register `r0`
 - The general procedure was as follows:
-    1. Saves callee-saved registers: `push {r4, r5, lr}`
-    2. Calls `wiringPiSetup()` with error handling
-    3. Ramp up by initializing a counter (`r4 = 0`) with bound (`r5 = 1024`), calling `pwmWrite(LedPin, r4)` every `delayMs = 10` ms, incrementing the counter by 1 each step until it reaches 1024.
-    4. Ramp down by initializing the counter (`r4 = 1024`), calling `pwmWrite(LedPin, r4)` decrementing the counter every 10 ms
-    5. Terminate the LED by calling `pwmWrite(LedPin, 0)` to guarantee the LED is fully extinguished
+  1. Saves callee-saved registers: `push {r4, r5, lr}`
+  2. Calls `wiringPiSetup()` with error handling
+  3. Ramp up by initializing a counter (`r4 = 0`) with bound (`r5 = 1024`), calling `pwmWrite(LedPin, r4)` every `delayMs = 10` ms, incrementing the counter by 1 each step until it reaches 1024.
+  4. Ramp down by initializing the counter (`r4 = 1024`), calling `pwmWrite(LedPin, r4)` decrementing the counter every 10 ms
+  5. Terminate the LED by calling `pwmWrite(LedPin, 0)` to guarantee the LED is fully extinguished
 
 ==== Debugging
 We used `gdb` to debug our code.
@@ -73,10 +73,10 @@ We used `gdb` to debug our code.
 (gdb) break blink_loop
 (gdb) run
 ```
-- Registers could then be accepting by continuing execution with `c` via `print/x $rA` where A is the register number 
-    - Inspecting `r7` to verify syscall number 5 (`SYS_open`).
-    - Inspecting `r0` after `svc #0` to ensure a positive file descriptor was returned.
-    - Inspecting `r0` after `SYS_mmap2` (192) to verify virtual page allocation
+- Registers could then be accepting by continuing execution with `c` via `print/x $rA` where A is the register number
+  - Inspecting `r7` to verify syscall number 5 (`SYS_open`).
+  - Inspecting `r0` after `svc #0` to ensure a positive file descriptor was returned.
+  - Inspecting `r0` after `SYS_mmap2` (192) to verify virtual page allocation
 - For `pwm.s`, GDB was used to monitor the duty cycle value in `r4`
 
 === Results and Observations:
@@ -84,9 +84,9 @@ We used `gdb` to debug our code.
 ==== Part 1 Results: Direct Register LED Blinking
 - The binary was cross-compiled on an x86_64 machine with `nix build .#blink_asm`, copied to the Pi 3B and run with `sudo ./blink`
 - The LED blinked on and off, staying on for 500 milliseconds before turning off for 500 milliseconds, stopping after 10 cycles
-    - Each toggle lasted 1 second total
+  - Each toggle lasted 1 second total
 - The LED turned off after the 10th cycle and the program exited without error
-    - We confirmed the exit code was zero by checking `echo $?`
+  - We confirmed the exit code was zero by checking `echo $?`
 
 ==== Part 2 Results: Hardware PWM LED Dimming
 - The binary was cross-compiled with `nix build .#blink_pwm`
@@ -105,9 +105,67 @@ PWM demo complete!
 The below output is verbatim from the terminal based on a `gdb` interactive session debugging part 1:
 
 ```txt
+(gdb) break _start
+Breakpoint 1 at 0x10074: file blink.s, line 40.
+(gdb) break blink_loop
+Breakpoint 2 at 0x100d4: file blink.s, line 72.
+(gdb) run
+Starting program: /home0/303/group11/repos/BlinkASM/debug/blink
+
+Breakpoint 1, _start () at blink.s:40
+warning: Source file is more recent than executable.
+40		ldr	r0, =gpiomem_path
+(gdb) info registers r0 r1 r7
+r0             0x0                 0
+r1             0x0                 0
+r7             0x0                 0
+(gdb) nexti 3
+43		svc	#0
+(gdb) info registers r0 r1 r7
+r0             0x11148             69960
+r1             0x101002            1052674
+r7             0x5                 5
+(gdb) nexti
+44		cmp	r0, #0
+(gdb) info registers r0
+r0             0x3                 3
+(gdb) continue
+Continuing.
+
+Breakpoint 2, blink_loop () at blink.s:72
+72		str	r9, [r8, #GPSET0]
+(gdb) info registers r6 r8 r9
+r6             0xa                 10
+r8             0xf7fee000          4160675840
+r9             0x400000            4194304
+(gdb) x/xw $r8 + 0x08
+0xf7fee008:	0x67706940
+(gdb) continue
+Continuing.
+
+Breakpoint 2, blink_loop () at blink.s:72
+72		str	r9, [r8, #GPSET0]
+(gdb) info registers r6
+r6             0x9                 9
+(gdb) delete breakpoints
+Delete all breakpoints, watchpoints, tracepoints, and catchpoints? (y or n) y
+(gdb) continue
+Continuing.
+[Inferior 1 (process 6930) exited normally]
 ```
 
 === Conclusions:
+==== Techniques Learned
+- This lab taught us how to interface with device driver memory (`/dev/gpiomem`) to interact with GPIO pins on a Raspberry Pi.
+- We also got to see an physical application of PWM in the form of changing the brightness of an LED.
+- Both of these parts gave us practical debugging experience using `gdb`, showing how to inspect a program during its execution.
+- Learned about the syscall IDs for ARM Linux EABI
+- Designed and understood how PWM can be utilized to present a dimmable LED by changing the duty cycle over time.
+
+==== Thoughts on the Assignment
+- Operating at such a low level allowed us to see what exactly is going on when we use a library like `wiringPi` to toggle and LED on and off
+- The PWM portion demonstrated the trade-offs of bare-metal register control, as it was difficult to get a proof of concept functioning without error. Utilizing a library like `wiringPi` for this task was not only easier but also showed how you can interact with ABI compatible C code from raw assembly language.
+-
 
 === Notes:
 - GPIO pin layout:
