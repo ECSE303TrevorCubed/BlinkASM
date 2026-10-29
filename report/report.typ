@@ -167,6 +167,11 @@ Continuing.
 - The PWM portion demonstrated the trade-offs of bare-metal register control, as it was difficult to get a proof of concept functioning without error. Utilizing a library like `wiringPi` for this task was not only easier but also showed how you can interact with ABI compatible C code from raw assembly language.
 -
 
+=== Demo:
+The demo for this lab has been uploaded to youtube and can be found here:
+
+#link("https://youtube.com/shorts/dedZNkVWrrI?feature=share")
+
 === Notes:
 - GPIO pin layout:
 ```txt
@@ -209,7 +214,9 @@ Continuing.
       [`SYS_close`], [`6`], [`r0 = fd`],
       [`SYS_munmap`], [`91`], [`r0 = addr, r1 = length`],
       [`SYS_nanosleep`], [`162`], [`r0 = req (timespec*), r1 = rem`],
-      [`SYS_mmap2`], [`192`], [`r0 = addr, r1 = len, r2 = prot, r3 = flags, r4 = fd, r5 = pgoff`],
+      [`SYS_mmap2`],
+      [`192`],
+      [`r0 = addr, r1 = len, r2 = prot, r3 = flags, r4 = fd, r5 = pgoff`],
     )
   ]
 - Useful register offsets:

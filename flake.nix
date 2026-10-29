@@ -3,6 +3,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    appimage.url = "github:ralismark/nix-appimage";
   };
 
   outputs =
@@ -102,10 +103,20 @@
         };
         packages =
           let
-            blink_apps = {
-              blink_asm = crossPkgs.callPackage ./nix/blink.nix { };
-              pwm_asm = crossPkgs.callPackage ./nix/pwm.nix { wiringPi = wiringpi'; };
-            };
+            blink_apps =
+              builtins.mapAttrs
+                (
+                  _: pkg:
+                  pkg.overrideAttrs (oldAttrs: {
+                    passthru = (oldAttrs.passthru or { }) // {
+                      appimage = inputs.appimage.bundlers.${system}.default pkg;
+                    };
+                  })
+                )
+                {
+                  blink_asm = crossPkgs.callPackage ./nix/blink.nix { };
+                  pwm_asm = crossPkgs.callPackage ./nix/pwm.nix { wiringPi = wiringpi'; };
+                };
             blink_report = pkgs.callPackage ./nix/report.nix { };
             ci = pkgs.callPackage ./nix/ci.nix {
               apps = blink_apps;
@@ -115,7 +126,6 @@
           {
             default = blink_apps.blink_asm;
             inherit (blink_apps) blink_asm pwm_asm;
-            blink_pwm = blink_apps.pwm_asm;
             inherit blink_report ci;
           };
         checks = {
