@@ -1,4 +1,4 @@
-= ECSE303 #box(width: 1fr)[#align(right)[Lab \#2]]
+= ECSE303 #box(width: 1fr)[#align(right)[Lab \#4]]
 
 == Lab Partners: Justin Fossum, Trevor Nichols, Trevor Swan #box(width: 1fr)[#align(right)[Group \#11]]
 
